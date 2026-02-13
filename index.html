@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognate Explorer - Beta v1.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .card-enter {
+            animation: cardEnter 0.3s ease-out;
+        }
+        
+        @keyframes cardEnter {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .search-input:focus {
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-secondary {
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .language-tag {
+            transition: all 0.2s ease;
+        }
+        
+        .language-tag:hover {
+            transform: scale(1.05);
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-6xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-semibold text-gray-900">Cognate Explorer <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">Beta v1.0</span></h1>
+                <div class="flex items-center space-x-2 text-sm text-gray-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span id="status">Ready</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-6 py-12">
+        <!-- Search Section -->
+        <section class="text-center mb-16">
+            <h2 class="text-4xl font-light text-gray-900 mb-4">Discover Cognates Across Languages</h2>
+            <p class="text-lg text-gray-600 mb-12">Find words that share the same meaning across different languages</p>
+            
+            <div class="max-w-2xl mx-auto">
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search for a word in any language..."
+                        class="search-input flex-1 px-6 py-4 text-lg border border-gray-300 rounded-full focus:outline-none focus:border-blue-500 transition-all"
+                    >
+                    <button 
+                        id="searchBtn"
+                        class="btn-primary px-8 py-4 text-white font-medium rounded-full focus:outline-none"
+                    >
+                        Search
+                    </button>
+                    <button 
+                        id="randomBtn"
+                        class="btn-secondary px-8 py-4 bg-white text-gray-700 font-medium rounded-full border border-gray-300 hover:bg-gray-50 focus:outline-none"
+                    >
+                        <span class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Random
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search Results Section -->
+        <section id="resultsSection" class="hidden mb-16">
+            <div class="max-w-6xl mx-auto">
+                <div class="mb-8">
+                    <h3 class="text-2xl font-light text-gray-900 mb-2">Results</h3>
+                    <p id="resultsInfo" class="text-gray-600"></p>
+                </div>
+                
+                <div id="resultsContainer" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    <!-- Results cards will be inserted here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Visual Break -->
+        <div class="max-w-6xl mx-auto mb-16">
+            <hr class="border-gray-200">
+        </div>
+
+        <!-- Comparative Matrix Section -->
+        <section class="mb-16">
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-light text-gray-900 mb-4">Comparative Matrix</h2>
+                    <p class="text-gray-600 mb-6">Compare cognates across multiple languages in a grid view</p>
+                    
+                    <div class="max-w-2xl mx-auto">
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Select Languages:</label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="en" class="language-checkbox rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm">English</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="es" class="language-checkbox rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm">Spanish</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="fr" class="language-checkbox rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm">French</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="it" class="language-checkbox rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm">Italian</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="pt" class="language-checkbox rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm">Portuguese</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="ca" class="language-checkbox rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm">Catalan</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="gl" class="language-checkbox rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm">Galician</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" value="ro" class="language-checkbox rounded text-blue-600 focus:ring-blue-500">
+                                    <span class="text-sm">Romanian</span>
+                                </label>
+                            </div>
+                        </div>
+                        <button 
+                            id="matrixBtn"
+                            class="btn-primary px-8 py-3 text-white font-medium rounded-lg focus:outline-none"
+                        >
+                            Generate Grid
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Matrix Results -->
+                <div id="matrixResults" class="hidden">
+                    <div class="mb-6 flex items-center justify-between">
+                        <h3 class="text-xl font-medium text-gray-900">Comparative Matrix</h3>
+                        <span id="matrixCount" class="text-sm text-gray-500"></span>
+                    </div>
+                    
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                        <div class="max-h-96 overflow-y-auto">
+                            <table id="matrixTable" class="min-w-full divide-y divide-gray-200">
+                                <!-- Matrix table will be inserted here -->
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden text-center py-12">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">Searching cognates...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden text-center py-12">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Something went wrong</h3>
+            <p id="errorMessage" class="text-gray-600"></p>
+        </div>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="hidden">
+            <div class="mb-8">
+                <h3 class="text-2xl font-light text-gray-900 mb-2">Results</h3>
+                <p id="resultsInfo" class="text-gray-600"></p>
+            </div>
+            
+            <div id="resultsContainer" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <!-- Results cards will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-16">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No results found</h3>
+            <p class="text-gray-600">Try searching for a different word or use the Random button to explore.</p>
+        </div>
+    </main>
+
+    <!-- Disclaimer Section -->
+    <section class="bg-gray-100 py-8">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-3">About This Project</h3>
+                <p class="text-gray-600 mb-4">
+                    This is an algorithmic/AI-assisted database. While we aim for etymological accuracy, some data may still need refinement. 
+                    Found a mistake? Help us improve the list!
+                </p>
+                <div class="flex items-center space-x-4 text-sm">
+                    <span class="text-gray-500">Status:</span>
+                    <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Beta v1.0</span>
+                    <span class="text-gray-500">• Strict Cognate Dictionary</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="max-w-6xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+                <div class="text-sm text-gray-500">
+                    © 2024 Cognate Explorer. Open source etymological research.
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="https://github.com/YOUR_USERNAME/cognate-explorer" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.373 12 12 12 0 0 1 8 0 0 0-8 0c0-6.626-5.373-12-12-12z"/>
+                        </svg>
+                        Found a mistake? Contribute on GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 shadow-xl">
+            <div class="flex flex-col items-center space-y-4">
+                <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-lg font-medium text-gray-900">Waking up server...</p>
+                <p class="text-sm text-gray-600">This may take a few moments</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://cognate-api-service.onrender.com';
+        
+        // DOM elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const randomBtn = document.getElementById('randomBtn');
+        const matrixBtn = document.getElementById('matrixBtn');
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsInfo = document.getElementById('resultsInfo');
+        const emptyState = document.getElementById('emptyState');
+        const matrixResults = document.getElementById('matrixResults');
+        const matrixCount = document.getElementById('matrixCount');
+        const matrixTable = document.getElementById('matrixTable');
+        const status = document.getElementById('status');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // Hide all states
+        function hideAllStates() {
+            loadingState.classList.add('hidden');
+            errorState.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            emptyState.classList.add('hidden');
+            matrixResults.classList.add('hidden');
+            loadingOverlay.classList.add('hidden');
+        }
+
+        // Show loading
+        function showLoading(message = 'Searching cognates...') {
+            hideAllStates();
+            loadingState.classList.remove('hidden');
+            loadingState.querySelector('p').textContent = message;
+            status.textContent = 'Loading...';
+        }
+
+        // Show loading overlay for server wake-up
+        function showLoadingOverlay() {
+            hideAllStates();
+            loadingOverlay.classList.remove('hidden');
+            status.textContent = 'Waking up server...';
+        }
+
+        // Show error
+        function showError(message) {
+            hideAllStates();
+            errorState.classList.remove('hidden');
+            errorMessage.textContent = message;
+            status.textContent = 'Error';
+        }
+
+        // Show results
+        function showResults(data, query) {
+            hideAllStates();
+            
+            if (!data.results || Object.keys(data.results).length === 0) {
+                emptyState.classList.remove('hidden');
+                status.textContent = 'No results';
+                return;
+            }
+
+            resultsSection.classList.remove('hidden');
+            resultsInfo.textContent = `Found ${data.english_references_found} English reference(s) with ${data.total_cognate_pairs} total cognate pairs`;
+            status.textContent = `Found ${Object.keys(data.results).length} result(s)`;
+
+            // Clear previous results
+            resultsContainer.innerHTML = '';
+
+            // Create cards for each English word
+            Object.entries(data.results).forEach(([englishRef, result], index) => {
+                const card = createResultCard(englishRef, result);
+                card.style.animationDelay = `${index * 0.1}s`;
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        // Show matrix results
+        function showMatrixResults(data) {
+            hideAllStates();
+            
+            if (!data.matrix || data.matrix.length === 0) {
+                showError('No cognates found for selected languages');
+                return;
+            }
+
+            matrixResults.classList.remove('hidden');
+            matrixCount.textContent = `${data.total_words} words across ${data.languages.length} languages`;
+
+            // Clear previous table
+            matrixTable.innerHTML = '';
+
+            // Create table header
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            headerRow.className = 'bg-gray-50 sticky top-0 z-10';
+            
+            // English column (always visible)
+            const englishHeader = document.createElement('th');
+            englishHeader.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50';
+            englishHeader.textContent = 'English';
+            headerRow.appendChild(englishHeader);
+            
+            // Language columns
+            data.languages.forEach(lang => {
+                const langHeader = document.createElement('th');
+                langHeader.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50';
+                const langNames = {
+                    'en': 'English',
+                    'es': 'Spanish',
+                    'fr': 'French',
+                    'it': 'Italian',
+                    'pt': 'Portuguese',
+                    'ca': 'Catalan',
+                    'gl': 'Galician',
+                    'ro': 'Romanian'
+                };
+                langHeader.textContent = langNames[lang] || lang.toUpperCase();
+                headerRow.appendChild(langHeader);
+            });
+            
+            thead.appendChild(headerRow);
+            matrixTable.appendChild(thead);
+
+            // Create table body
+            const tbody = document.createElement('tbody');
+            tbody.className = 'bg-white divide-y divide-gray-200';
+            
+            data.matrix.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                
+                // English column
+                const englishCell = document.createElement('td');
+                englishCell.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900';
+                englishCell.textContent = row.english_word;
+                tr.appendChild(englishCell);
+                
+                // Language columns
+                data.languages.forEach(lang => {
+                    const langCell = document.createElement('td');
+                    langCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                    const value = row[lang] || '';
+                    if (value) {
+                        langCell.innerHTML = `<span class="font-medium text-blue-600">${value}</span>`;
+                    } else {
+                        langCell.innerHTML = '<span class="text-gray-400">—</span>';
+                    }
+                    tr.appendChild(langCell);
+                });
+                
+                tbody.appendChild(tr);
+            });
+            
+            matrixTable.appendChild(tbody);
+
+            status.textContent = `Matrix: ${data.total_words} words across ${data.languages.length} languages`;
+        }
+
+        // Create result card
+        function createResultCard(englishRef, result) {
+            const card = document.createElement('div');
+            card.className = 'card-enter bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-6 border border-gray-100';
+            
+            const languagesHtml = Object.entries(result.translations)
+                .map(([lang, words]) => `
+                    <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-b-0">
+                        <span class="language-tag inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            ${lang.toUpperCase()}
+                        </span>
+                        <div class="flex flex-wrap gap-2">
+                            ${words.map(word => `
+                                <span class="text-gray-700 font-medium">${word}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+
+            const matchTypeBadges = result.match_types.map(type => {
+                const color = type === 'Perfect' ? 'green' : 'yellow';
+                return `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-${color}-100 text-${color}-800">${type}</span>`;
+            }).join('');
+
+            card.innerHTML = `
+                <div class="mb-4">
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-2">${englishRef}</h3>
+                    <div class="flex items-center gap-2 mb-3">
+                        ${matchTypeBadges}
+                        <span class="text-sm text-gray-500">${result.language_count} languages</span>
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    ${languagesHtml}
+                </div>
+            `;
+
+            return card;
+        }
+
+        // Search function
+        async function performSearch(query) {
+            try {
+                showLoading();
+                const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                showResults(data, query);
+            } catch (error) {
+                showError(`Failed to search: ${error.message}`);
+            }
+        }
+
+        // Random function
+        async function getRandomCognates() {
+            try {
+                showLoading('Getting random cognates...');
+                const response = await fetch(`${API_BASE}/random?count=5`);
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Transform random results to match search format
+                const transformedData = {
+                    english_references_found: data.count,
+                    total_cognate_pairs: data.total_cognate_pairs,
+                    results: {}
+                };
+                
+                data.results.forEach(cognate => {
+                    const englishRef = cognate.English_Reference;
+                    if (!transformedData.results[englishRef]) {
+                        transformedData.results[englishRef] = {
+                            english_word: englishRef,
+                            translations: {},
+                            language_count: 0,
+                            total_translations: 0,
+                            match_types: []
+                        };
+                    }
+                    
+                    const result = transformedData.results[englishRef];
+                    
+                    // Add language A
+                    if (!result.translations[cognate.Lang_A]) {
+                        result.translations[cognate.Lang_A] = [];
+                    }
+                    if (!result.translations[cognate.Lang_A].includes(cognate.Word_A)) {
+                        result.translations[cognate.Lang_A].push(cognate.Word_A);
+                    }
+                    
+                    // Add language B
+                    if (!result.translations[cognate.Lang_B]) {
+                        result.translations[cognate.Lang_B] = [];
+                    }
+                    if (!result.translations[cognate.Lang_B].includes(cognate.Word_B)) {
+                        result.translations[cognate.Lang_B].push(cognate.Word_B);
+                    }
+                    
+                    // Update stats
+                    result.language_count = Object.keys(result.translations).length;
+                    result.total_translations = Object.values(result.translations).reduce((sum, words) => sum + words.length, 0);
+                    
+                    if (!result.match_types.includes(cognate.Match_Type)) {
+                        result.match_types.push(cognate.Match_Type);
+                    }
+                });
+                
+                showResults(transformedData, 'Random');
+            } catch (error) {
+                showError(`Failed to get random cognates: ${error.message}`);
+            }
+        }
+
+        // Matrix generation function
+        async function generateMatrix() {
+            const checkboxes = document.querySelectorAll('.language-checkbox:checked');
+            const languages = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (languages.length === 0) {
+                showError('Please select at least one language');
+                return;
+            }
+            
+            try {
+                showLoading('Generating comparative matrix...');
+                const response = await fetch(`${API_BASE}/matrix`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ languages })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                showMatrixResults(data);
+            } catch (error) {
+                showError(`Failed to generate matrix: ${error.message}`);
+            }
+        }
+
+        // Event listeners
+        searchBtn.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                performSearch(query);
+            }
+        });
+
+        randomBtn.addEventListener('click', getRandomCognates);
+
+        matrixBtn.addEventListener('click', generateMatrix);
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = searchInput.value.trim();
+                if (query) {
+                    performSearch(query);
+                }
+            }
+        });
+
+        // Check API health on load
+        async function checkApiHealth() {
+            try {
+                showLoadingOverlay();
+                
+                const response = await fetch(`${API_BASE}/health`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    status.textContent = `Connected (${data.total_records} records)`;
+                } else {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
+            } catch (error) {
+                showError(`Failed to connect to server: ${error.message}. Please try again in a moment.`);
+            } finally {
+                // Always hide overlay after attempt
+                setTimeout(() => {
+                    loadingOverlay.classList.add('hidden');
+                }, 1000);
+            }
+        }
+
+        // Initialize
+        checkApiHealth();
+    </script>
+</body>
+</html>
